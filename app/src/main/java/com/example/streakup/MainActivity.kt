@@ -336,9 +336,9 @@ fun AnaEkran(kullanici: FirebaseUser, cikisYapinca: () -> Unit) { // firebaseden
 }
 
 @Composable
-fun KimlikEkrani(girisBasarili: (FirebaseUser) -> Unit) {
+fun KimlikEkrani(girisBasarili: (FirebaseUser) -> Unit) {   // kullanıcı giriş yaptı kullanıcıların bilgilerini verir ana ekranın açılmasını ister
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
+    val scope = rememberCoroutineScope() // google ile giriş de kullanılıyor
     val auth = FirebaseAuth.getInstance()
 
     // true = giriş modu, false = kayıt modu
@@ -355,7 +355,7 @@ fun KimlikEkrani(girisBasarili: (FirebaseUser) -> Unit) {
     ) {
 
         Text(
-            if (girisModu) "StreakUp'a Giriş" else "Hesap Oluştur",
+            if (girisModu) "StreakUp" else "Hesap Oluştur", // başlık dinamiktir kullanıcı kayıt olmaya çalışırken değişir
             fontSize = 32.sp,
             fontWeight = FontWeight.Bold
         )
@@ -364,7 +364,7 @@ fun KimlikEkrani(girisBasarili: (FirebaseUser) -> Unit) {
 
         // Kayıt modunda isim soruluyor
         if (!girisModu) {
-            TextField(
+            TextField(              // eğer giriş modunda değilsek kayıt modundayızdır ad soyad sadece kayıtta gözükür
                 value = adSoyad,
                 onValueChange = { adSoyad = it },
                 placeholder = { Text("Adın Soyadın") },
@@ -400,32 +400,32 @@ fun KimlikEkrani(girisBasarili: (FirebaseUser) -> Unit) {
             value = sifre,
             onValueChange = { sifre = it },
             placeholder = { Text("Şifre") },
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            modifier = Modifier.fillMaxWidth(),
+            visualTransformation = PasswordVisualTransformation(), // Şifreyi **** yapar ve gizler
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), // otomayik düzenlemeyi kapatırız // şifreye uygun karakter klavyesini açar
+            modifier = Modifier.fillMaxWidth(), // Textfieldı yatayda tamamen genişletir
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = Color(0xFFF5F5F5),
                 unfocusedContainerColor = Color(0xFFF5F5F5)
             ),
-            shape = RoundedCornerShape(8.dp),
-            singleLine = true
-        )
+            shape = RoundedCornerShape(8.dp), // köşeleri yuvarlar
+            singleLine = true // tek bir satır olarak ayaralr kullanıcı entera bastığında aşağıya kaymaz satır
+        )   // tek satır olur
 
         Spacer(Modifier.height(24.dp))
 
         // Giriş / Kayıt butonu
         Button(
             onClick = {
-                if (email.isNotEmpty() && sifre.isNotEmpty()) {
+                if (email.isNotEmpty() && sifre.isNotEmpty()) { // ilk önce kutular dolu mu boş mu onu kontrol eder dolu değilse uyarır else e girer ve toast mesajı gösterir
 
                     if (girisModu) {
                         // Giriş işlemi
-                        auth.signInWithEmailAndPassword(email, sifre)
+                        auth.signInWithEmailAndPassword(email, sifre) // firebbase e bu email ve şifre ile beni içeri al diyoruz
                             .addOnCompleteListener { gorev ->
-                                if (gorev.isSuccessful) {
+                                if (gorev.isSuccessful) { // evet bilgiler doğru görev başarılı
                                     val kullanici = auth.currentUser
-                                    if (kullanici != null && kullanici.isEmailVerified) {
-                                        girisBasarili(kullanici)
+                                    if (kullanici != null && kullanici.isEmailVerified) { // kullanıcının girdiği mail gerçek mi diye firebase bir doğrulama maili yollar
+                                        girisBasarili(kullanici)                          // eğer kullanıcı boş değilse ve mail onaylanmışsa içeri al
                                     } else {
                                         auth.signOut()
                                         Toast.makeText(
@@ -444,8 +444,8 @@ fun KimlikEkrani(girisBasarili: (FirebaseUser) -> Unit) {
                             }
                     } else {
                         // Kayıt işlemi
-                        if (adSoyad.isNotEmpty()) {
-                            auth.createUserWithEmailAndPassword(email, sifre)
+                        if (adSoyad.isNotEmpty()) { // ad ve soyad bölümü dolu mu diye bakıyoruz doluysa devam edeceğiz zorunlu çünkü
+                            auth.createUserWithEmailAndPassword(email, sifre) // yeni bir kullanıcı oluşturuyoruz
                                 .addOnCompleteListener { gorev ->
                                     if (gorev.isSuccessful) {
                                         val kullanici = auth.currentUser
@@ -456,7 +456,7 @@ fun KimlikEkrani(girisBasarili: (FirebaseUser) -> Unit) {
                                         kullanici?.updateProfile(profil)
 
                                         // Mail doğrulama
-                                        kullanici?.sendEmailVerification()
+                                        kullanici?.sendEmailVerification() // kullanıcıya doğrulama maili yolluyoruz
 
                                         Toast.makeText(
                                             context,
@@ -474,7 +474,7 @@ fun KimlikEkrani(girisBasarili: (FirebaseUser) -> Unit) {
                                     }
                                 }
                         } else {
-                            Toast.makeText(context, "Adınızı girin.", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Adınızı girin.", Toast.LENGTH_SHORT).show() // ad soyad boş bırakılırsa uyarılır
                         }
                     }
 
@@ -483,7 +483,7 @@ fun KimlikEkrani(girisBasarili: (FirebaseUser) -> Unit) {
                 }
             },
             modifier = Modifier.fillMaxWidth().height(50.dp),
-            colors = ButtonDefaults.buttonColors(Color.Black),
+            colors = ButtonDefaults.buttonColors(Color.Black), // Bu buton, kullanıcının niyetine göre (Giriş/Kayıt) Firebase ile konuşur gelen cevaba göre işlem yapar
             shape = RoundedCornerShape(8.dp)
         ) {
             Text(
@@ -515,11 +515,11 @@ fun KimlikEkrani(girisBasarili: (FirebaseUser) -> Unit) {
         if (girisModu) {
             TextButton(
                 onClick = {
-                    if (email.isNotEmpty()) {
+                    if (email.isNotEmpty()) { // kullanıcı e mail kısmını doldurmuşsa çalışır ve ilgili maile bir sıfırlama linki yollar
                         auth.sendPasswordResetEmail(email)
                         Toast.makeText(context, "Sıfırlama maili gönderildi.", Toast.LENGTH_SHORT).show()
                     } else {
-                        Toast.makeText(context, "Email girin.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Email girin.", Toast.LENGTH_SHORT).show() // e posta kutusu boşsa uyarı fırlatır
                     }
                 }
             ) {
@@ -528,7 +528,7 @@ fun KimlikEkrani(girisBasarili: (FirebaseUser) -> Unit) {
         }
 
         Spacer(Modifier.height(24.dp))
-        Divider()
+        HorizontalDivider()                     // çizgi
         Spacer(Modifier.height(24.dp))
 
         // Google ile giriş
