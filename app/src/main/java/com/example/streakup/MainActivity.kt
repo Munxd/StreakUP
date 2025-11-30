@@ -536,16 +536,16 @@ fun KimlikEkrani(girisBasarili: (FirebaseUser) -> Unit) {   // kullanıcı giri�
             onClick = {
                 scope.launch {
                     try {
-                        val manager = CredentialManager.create(context)
+                        val manager = CredentialManager.create(context) // Google hesabı seçim ekranını, token almayı ve kimlik doğrulama sürecini yöneten merkez bileşen.
 
-                        val googleOption = GetGoogleIdOption.Builder()
+                        val googleOption = GetGoogleIdOption.Builder() // Bu yapı, Google ekrana hangi hesapların gösterileceğini belirliyor
                             .setFilterByAuthorizedAccounts(false)
                             .setServerClientId("799873898750-3pgv1iono7a0b17slpeda8jekhak2iup.apps.googleusercontent.com")
                             .setAutoSelectEnabled(true)
                             .build()
 
                         val request = GetCredentialRequest.Builder()
-                            .addCredentialOption(googleOption)
+                            .addCredentialOption(googleOption) // Burada Google’a “bir kullanıcı girişi istiyorum” diyorsun
                             .build()
 
                         val result = manager.getCredential(context, request)
@@ -554,10 +554,10 @@ fun KimlikEkrani(girisBasarili: (FirebaseUser) -> Unit) {   // kullanıcı giri�
                         if (credential is CustomCredential &&
                             credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
                         ) {
-                            val googleToken = GoogleIdTokenCredential.createFrom(credential.data)
+                            val googleToken = GoogleIdTokenCredential.createFrom(credential.data) // Google sadece ID Token verir.
 
                             val firebaseKimlik =
-                                GoogleAuthProvider.getCredential(googleToken.idToken, null)
+                                GoogleAuthProvider.getCredential(googleToken.idToken, null) // Firebase bu token’ı direk kabul etmez → önce Firebase Credential’a dönüştürmen gerekir.
 
                             auth.signInWithCredential(firebaseKimlik)
                                 .addOnCompleteListener { gorev ->
