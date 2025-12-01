@@ -35,6 +35,13 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential        // Google giriş kütüphaneleri
 import androidx.credentials.GetCredentialRequest
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert // 3 nokta ikonu
+import androidx.compose.material.icons.filled.Edit     // Düzenleme kalem ikonu
+import androidx.compose.material.icons.filled.Delete   // Silme çöp kutusu ikonu
+import androidx.compose.material3.DropdownMenu         // Açılır menü
+import androidx.compose.material3.DropdownMenuItem     // Menü elemanları
+import androidx.compose.material3.Icon                 // İkon bileşeni
 
 // Alışkanlık modelimiz
 data class Aliskanlik(
@@ -94,10 +101,13 @@ fun AnaEkran(kullanici: FirebaseUser, cikisYapinca: () -> Unit) { // firebaseden
     val context = LocalContext.current
     val db = FirebaseFirestore.getInstance() // firebase firestore veritabanına erişim sağlamak veri okumak veri yazmak
 
-
     // Mail ile kaydolan birinin ismi yoksa Firebase'de displayName boş gelir. Google ile girenlerde ise genellikle dolu gelir.
     var ekrandakiIsim by remember { mutableStateOf(kullanici.displayName ?: "") }
     var isimBelirlemePenceresi by remember { mutableStateOf(false) }
+
+    // --- YENİ EKLENDİ: Düzenleme işlemi için değişken ---
+    // Hangi alışkanlığın düzenlendiğini burada tutuyoruz.
+    var duzenlenecekAliskanlik by remember { mutableStateOf<Aliskanlik?>(null) }
 
     // Eğer kullanıcının ismi yoksa zorunlu olarak isim belirleme penceresini açar
     LaunchedEffect(Unit) {
@@ -119,7 +129,7 @@ fun AnaEkran(kullanici: FirebaseUser, cikisYapinca: () -> Unit) { // firebaseden
             .orderBy("zamanDamgasi", Query.Direction.ASCENDING) // sıralarına göre
             .addSnapshotListener { snapshot, hata ->
                 if (hata != null) return@addSnapshotListener
-                                                                // veritabanını diler veritabanında değişiklik oldugu an tetiklenir listeyi günceller sayfayı yenilemeye gerek yoktur
+                // veritabanını dinler veritabanında değişiklik oldugu an tetiklenir listeyi günceller sayfayı yenilemeye gerek yoktur
                 if (snapshot != null) {
                     aliskanliklar.clear()
                     for (doc in snapshot.documents) {
@@ -148,18 +158,18 @@ fun AnaEkran(kullanici: FirebaseUser, cikisYapinca: () -> Unit) { // firebaseden
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween, // ilk elemanı en sola koy son elemanı sağa koy spacebetween aradaki boşluğu kendisi hesaplıyor
-            verticalAlignment = Alignment.CenterVertically // row içindeki bütün bileşenleri dikeyde ortala Column ile IconButton'ın dikey ortaları aynı hizaya gelir.
+            verticalAlignment = Alignment.CenterVertically // row içindeki bütün bileşenleri dikeyde ortala
         ) {
             Column {
                 Text("Hoş geldin,", fontSize = 28.sp, fontWeight = FontWeight.Bold)
                 Text(
-                    if (ekrandakiIsim.isNotEmpty()) ekrandakiIsim else "...", // ekranın sol üstüne Hoş geldin, kullanıcı adını yazar eğer kullanıcı adı boşsa ... koyar
+                    if (ekrandakiIsim.isNotEmpty()) ekrandakiIsim else "...", // ekranın sol üstüne Hoş geldin, kullanıcı adını yazar
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
             IconButton(onClick = cikisYapinca) {
-                Text("Çıkış", color = Color.Red, fontSize = 12.sp)            // ıconbutton olan çıkış butonumuz da sağ üstte kırmızı olarak buluancaktır
+                Text("Çıkış", color = Color.Red, fontSize = 12.sp) // ıconbutton olan çıkış butonumuz
             }
         }
 
@@ -170,7 +180,7 @@ fun AnaEkran(kullanici: FirebaseUser, cikisYapinca: () -> Unit) { // firebaseden
         Spacer(Modifier.height(8.dp))
         LinearProgressIndicator(
             progress = { ilerleme },
-            modifier = Modifier.fillMaxWidth().height(10.dp) // düm genişliği kaplamasını ve 10 dp yüksekliğinde olmasını sağladım
+            modifier = Modifier.fillMaxWidth().height(10.dp) // tüm genişliği kaplamasını ve 10 dp yüksekliğinde olmasını sağladım
                 .clip(RoundedCornerShape(5.dp)), // daha yumşak bir görüntü için köşeler yuvarlanır
             color = Color(0xFF4285F4), // barın dolu olan kısmının rengi
             trackColor = Color(0xFFE0E0E0) //barın dolu olmayan kısmının rengi
@@ -191,23 +201,23 @@ fun AnaEkran(kullanici: FirebaseUser, cikisYapinca: () -> Unit) { // firebaseden
             }
         } else {
             // alışkanlık varsa Alışkanlık listesi
-            // LazyColumn burda çok önemli bir görev üstleniyor eğer 50 alışkanlığımız varsa  normal column bunların hepsini çiziyor
-            // bu duurm da performansı çok etkiliyor lazycolumn ekrana ne kadar öğe sığıyorsa o kadar çizer sonra kaydırdıkça geri kalanlarını çiziyor
-            LazyColumn(modifier = Modifier.weight(1f)) {        // weight(1f): "Kalan tüm boş alanı kapla" demektir.
+            // LazyColumn burda çok önemli bir görev üstleniyor eğer 50 alışkanlığımız varsa normal column bunların hepsini çiziyor
+            // bu durumda performansı çok etkiliyor lazycolumn ekrana ne kadar öğe sığıyorsa o kadar çizer
+            LazyColumn(modifier = Modifier.weight(1f)) { // weight(1f): "Kalan tüm boş alanı kapla" demektir.
                 items(aliskanliklar, key = { it.id }) { aliskanlik -> // bir döngüdür listedeki her bir eleman için bir kere çalışır
-                // key = { it.id } "Her satırın kimliği, o alışkanlığın idsidir. her satırı benzersiz kılar
+                    // key = { it.id } "Her satırın kimliği, o alışkanlığın idsidir. her satırı benzersiz kılar
+
+                    // --- YENİ EKLENDİ: Menü durumu ---
+                    var menuAcikMi by remember { mutableStateOf(false) }
 
                     val guncelle = {
                         val index = aliskanliklar.indexOfFirst { it.id == aliskanlik.id }
-                        // hızlı çalışsın diye ilk önce ekranda bir güncelleme yapıyoruz chechos işaretlensin diye
+                        // hızlı çalışsın diye ilk önce ekranda bir güncelleme yapıyoruz checkbox işaretlensin diye
                         if (index != -1) {
                             aliskanliklar[index] =
                                 aliskanlik.copy(tamamlandiMi = !aliskanlik.tamamlandiMi)
                         }
                         // sonra da database de tamamlandı mı kısmını güncelliyoruz
-                        // db.collection("aliskanliklarim") → Firestore’daki aliskanliklarim koleksiyonuna erişiyorsun.
-                        // .document(aliskanlik.id) → Güncellemek istediğin belirli belgenin ID’sini seçiyorsun.
-                        // .update("tamamlandiMi", !aliskanlik.tamamlandiMi) → Belgedeki tamamlandiMi alanını !aliskanlik.tamamlandiMi ile değiştiriyorsun.
                         db.collection("aliskanliklarim").document(aliskanlik.id)
                             .update("tamamlandiMi", !aliskanlik.tamamlandiMi)
                     }
@@ -215,12 +225,12 @@ fun AnaEkran(kullanici: FirebaseUser, cikisYapinca: () -> Unit) { // firebaseden
                     Row(
                         modifier = Modifier.fillMaxWidth() // tüm satırı kaplamasını sağlarız
                             .padding(vertical = 8.dp)
-                            .clickable { guncelle() }, // bu özellik ile kutucuk harici yazıya tıklasak bile  güncelle fonksiyonunun çalışmasını sağlarız
+                            .clickable { guncelle() }, // bu özellik ile kutucuk harici yazıya tıklasak bile güncelle fonksiyonunun çalışmasını sağlarız
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Checkbox(
                             checked = aliskanlik.tamamlandiMi, // kutu boş mu dolu mu
-                            onCheckedChange = { guncelle() }, // kutuya doğrudan basılınca da güncelle fonksiyonu çalışyıor
+                            onCheckedChange = { guncelle() }, // kutuya doğrudan basılınca da güncelle fonksiyonu çalışıyor
                             colors = CheckboxDefaults.colors(
                                 checkedColor = Color(0xFF4285F4)
                             )
@@ -228,9 +238,57 @@ fun AnaEkran(kullanici: FirebaseUser, cikisYapinca: () -> Unit) { // firebaseden
                         Text(
                             aliskanlik.ad,
                             fontSize = 18.sp,
-                            color = if (aliskanlik.tamamlandiMi) Color.Gray else Color.Black, // dinamik renklendirma tamamlanmışsa gri olacak tamamlanmamışsa siyah
+                            color = if (aliskanlik.tamamlandiMi) Color.Gray else Color.Black, // dinamik renklendirma
                             modifier = Modifier.padding(start = 12.dp) // yazı ile checkbox arasına boşluk koyar
                         )
+
+                        // --- YENİ EKLENDİ: Sağa yaslama ve Menü ---
+                        Spacer(Modifier.weight(1f)) // İkonu en sağa iter
+
+                        Box {
+                            IconButton(onClick = { menuAcikMi = true }) {
+                                Icon(
+                                    imageVector = androidx.compose.material.icons.Icons.Default.MoreVert,
+                                    contentDescription = "Seçenekler"
+                                )
+                            }
+
+                            DropdownMenu(
+                                expanded = menuAcikMi,
+                                onDismissRequest = { menuAcikMi = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Düzenle") },
+                                    onClick = {
+                                        menuAcikMi = false
+                                        // Düzenlenecek veriyi değişkene atıyoruz
+                                        duzenlenecekAliskanlik = aliskanlik
+                                    },
+                                    leadingIcon = {
+                                        Icon(androidx.compose.material.icons.Icons.Default.Edit, contentDescription = null)
+                                    }
+                                )
+                                // DropdownMenu içindeki SİL kısmı
+                                DropdownMenuItem(
+                                    text = { Text("Sil", color = Color.Red) },
+                                    onClick = {
+                                        menuAcikMi = false
+
+                                        // 1. ÖNCE EKRANDAN SİL (Anında tepki için)
+                                        aliskanliklar.remove(aliskanlik)
+
+                                        // 2. SONRA VERİTABANINDAN SİL
+                                        db.collection("aliskanliklarim").document(aliskanlik.id).delete()
+                                            .addOnSuccessListener {
+                                                Toast.makeText(context, "Alışkanlık silindi", Toast.LENGTH_SHORT).show()
+                                            }
+                                    },
+                                    leadingIcon = {
+                                        Icon(androidx.compose.material.icons.Icons.Default.Delete, contentDescription = null, tint = Color.Red)
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -238,7 +296,7 @@ fun AnaEkran(kullanici: FirebaseUser, cikisYapinca: () -> Unit) { // firebaseden
 
         Spacer(Modifier.height(16.dp))
 
-        // Alışkanlık Ekle butonu eğer bu butona tıklarsak aşağıdaki if true olur ve ekrana pencereyi çizer
+        // Alışkanlık Ekle butonu
         Button(
             onClick = { eklemePenceresiGoster = true },
             modifier = Modifier.fillMaxWidth().height(50.dp),
@@ -252,28 +310,46 @@ fun AnaEkran(kullanici: FirebaseUser, cikisYapinca: () -> Unit) { // firebaseden
     // Alışkanlık ekleme popup'ı
     if (eklemePenceresiGoster) {
         AlertDialog(
-            onDismissRequest = { eklemePenceresiGoster = false }, // kullanıcı ekranda boş bir yere veya iptal tuşuna basınca  pencerenin kapanmasını sağlar
+            onDismissRequest = { eklemePenceresiGoster = false }, // kullanıcı ekranda boş bir yere veya iptal tuşuna basınca pencerenin kapanmasını sağlar
             title = { Text("Yeni Alışkanlık") },
             text = {
-                TextField(  // pencerenin içeriği bu kutuda oluşuyor
+                TextField( // pencerenin içeriği bu kutuda oluşuyor
                     value = yeniAliskanlikAdi, // ne göstereyim?
-                    onValueChange = { yeniAliskanlikAdi = it }, // bir şey yazılırsa ne yapayım    // Kullanıcı klavyeye bastığında ekranda harflerin nasıl göründüğünü yöneten kısımdır.
+                    onValueChange = { yeniAliskanlikAdi = it }, // bir şey yazılırsa ne yapayım
                     placeholder = { Text("Örn: Yatağını Düzenle") } // boşken göstereceği değer
                 )
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        if (yeniAliskanlikAdi.isNotEmpty()) { // kullanıcı boş bir kutuya ekle derse hiç bir şey yapmaz, bir güvenlik önlemi
-                            val harita = hashMapOf( //Firestore, verileri JSON benzeri "Anahtar-Değer" (Key-Value) ikilileri olarak saklar. Kotlin'de bunun karşılığı HashMaptir.
-                                "ad" to yeniAliskanlikAdi,
-                                "tamamlandiMi" to false, // "tamamlandiMi": Varsayılan olarak false. Çünkü yeni eklenen bir alışkanlık henüz yapılmamıştır.
-                                "kullaniciId" to kullanici.uid, // "kullaniciId": Çok Kritik. Bu verinin kime ait olduğunu buraya damgalıyoruz.
-                                "zamanDamgasi" to System.currentTimeMillis() // eklenen sıraya göre alışkanlıkları sıralama
+                        if (yeniAliskanlikAdi.isNotEmpty()) {
+                            // 1. ÖNCE ID OLUŞTURUYORUZ
+                            // Veritabanına "bana boş bir kimlik ver" diyoruz
+                            val yeniId = db.collection("aliskanliklarim").document().id
+
+                            // 2. YENİ ALIŞKANLIK NESNESİ
+                            // Bu nesneyi hem ekrana hem veritabanına yollayacağız
+                            val yeniAliskanlik = Aliskanlik(
+                                id = yeniId,
+                                ad = yeniAliskanlikAdi,
+                                tamamlandiMi = false,
+                                kullaniciId = kullanici.uid,
+                                zamanDamgasi = System.currentTimeMillis()
                             )
-                            db.collection("aliskanliklarim").add(harita) // veritabanında aliskanlıklarim klasörüne git add ile haritayı ekle add kullandığımız için firestore otomatik bir ID atıyor
-                            yeniAliskanlikAdi = ""      // kullanıcı bir alışkanlık ekledikten sonra Kutunun içini temizle ki kullanıcı bir sonraki sefer açtığında eski yazdığı şey orada kalmasın.
-                            eklemePenceresiGoster = false // pencereyi kapat
+
+                            // 3. EKRANA EKLE (Anında görüntü için)
+                            aliskanliklar.add(yeniAliskanlik)
+
+                            // 4. VERİTABANINA KAYDET
+                            // .add() yerine .document(yeniId).set() kullanıyoruz çünkü ID'yi biz belirledik
+                            db.collection("aliskanliklarim").document(yeniId)
+                                .set(yeniAliskanlik)
+                                .addOnSuccessListener {
+                                    // Veritabanına başarıyla yazıldı (zaten ekranda göründüğü için kullanıcı fark etmez)
+                                }
+
+                            yeniAliskanlikAdi = "" // Kutuyu temizle
+                            eklemePenceresiGoster = false // Pencereyi kapat
                         }
                     }
                 ) { Text("Ekle") }
@@ -286,16 +362,64 @@ fun AnaEkran(kullanici: FirebaseUser, cikisYapinca: () -> Unit) { // firebaseden
         )
     }
 
+    // --- YENİ EKLENDİ: DÜZENLEME PENCERESİ ---
+    if (duzenlenecekAliskanlik != null) {
+        var guncelAd by remember { mutableStateOf(duzenlenecekAliskanlik!!.ad) }
 
-    // Eğer kullanıcının ismi yoksa bu pencere açılır ve kapanmaz (onDismissRequest boş)
-    // isim belirlemepenceresi true ise çalışır
+        AlertDialog(
+            onDismissRequest = { duzenlenecekAliskanlik = null },
+            title = { Text("Alışkanlığı Düzenle") },
+            text = {
+                TextField(
+                    value = guncelAd,
+                    onValueChange = { guncelAd = it },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (guncelAd.isNotEmpty()) {
+                            // 1. ÖNCE EKRANDA GÜNCELLE (Anında tepki için)
+                            // Listede bu alışkanlığın sırasını buluyoruz
+                            val index = aliskanliklar.indexOfFirst { it.id == duzenlenecekAliskanlik!!.id }
+
+                            if (index != -1) {
+                                // Listeyi yeni isimle güncelliyoruz
+                                aliskanliklar[index] = aliskanliklar[index].copy(ad = guncelAd)
+                            }
+
+                            // 2. SONRA VERİTABANINI GÜNCELLE
+                            db.collection("aliskanliklarim")
+                                .document(duzenlenecekAliskanlik!!.id)
+                                .update("ad", guncelAd)
+                                .addOnSuccessListener {
+                                    Toast.makeText(context, "Güncellendi", Toast.LENGTH_SHORT).show()
+                                }
+
+                            duzenlenecekAliskanlik = null // Pencereyi kapat
+                        }
+                    }
+                ) {
+                    Text("Kaydet")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { duzenlenecekAliskanlik = null }) {
+                    Text("İptal")
+                }
+            }
+        )
+    }
+
+    // isim belirleme penceresi
     if (isimBelirlemePenceresi) {
         AlertDialog(
-            onDismissRequest = { /* Zorunlu olduğu için boş bıraktık, dışarı basınca kapanmasın */ },
+            onDismissRequest = { /* Zorunlu olduğu için boş bıraktık */ },
             title = { Text("Adınızı Belirleyin") },
             text = {
                 Column {
-                    Text("Devam etmek için lütfen kendinize bir kullanıcı adı belirleyin.") // bilgilendirme metni
+                    Text("Devam etmek için lütfen kendinize bir kullanıcı adı belirleyin.")
                     Spacer(modifier = Modifier.height(16.dp))
                     TextField(
                         value = yeniKullaniciAdi,
@@ -308,17 +432,17 @@ fun AnaEkran(kullanici: FirebaseUser, cikisYapinca: () -> Unit) { // firebaseden
             confirmButton = {
                 Button(
                     onClick = {
-                        if (yeniKullaniciAdi.isNotEmpty()) { // boş isimle kayıt olmayı engeller
+                        if (yeniKullaniciAdi.isNotEmpty()) {
                             // Firebase profilini güncelle
                             val profilGuncelleme = UserProfileChangeRequest.Builder()
-                                .setDisplayName(yeniKullaniciAdi)       // kullanıcıdan ismini alır firebase e yollar onay gelince ekranda isim değişir pencere kapanır kullanıcı alışkanlığını girer
+                                .setDisplayName(yeniKullaniciAdi)
                                 .build()
 
                             kullanici.updateProfile(profilGuncelleme)
                                 .addOnCompleteListener { gorev ->
                                     if (gorev.isSuccessful) {
                                         ekrandakiIsim = yeniKullaniciAdi // Ekrana yansıt
-                                        isimBelirlemePenceresi = false   // Pencereyi kapat
+                                        isimBelirlemePenceresi = false // Pencereyi kapat
                                     } else {
                                         Toast.makeText(context, "Hata oluştu", Toast.LENGTH_SHORT).show()
                                     }
